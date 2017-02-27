@@ -1,5 +1,15 @@
-from recommend import loaddata
+from recommend import datasets
 
-data = loaddata.load_1m()
-print(data.data.shape)
-print(data.target.shape)
+class A:
+	@property
+	def say(self):
+		return 'hello'
+
+	def test(self):
+		print(self.say)
+
+a = A()
+print(a.test())
+
+
+

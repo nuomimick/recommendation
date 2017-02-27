@@ -190,4 +190,68 @@ if __name__ == "__main__":
         predictAll(trainData, testData)
     
 '''
-  
+from array import array
+import numpy as np
+
+class ItemCR:
+    def __init__(self,k,method='cosine'):
+        if method == 'cosine':
+            self.sim_method = self.__cosine
+
+    def fit(self,train_x,train_y):
+        self.__user_item = {}
+        self.__item_user = {}
+        self.__item_mean_std = {}
+        item_list = {}
+        m,n = train_x.shape
+        for i in range(m):
+            uid, iid, rating = train_x[i][0],train_x[i][1],train_y[i]
+            self.__user_item.setdefault(uid,{})
+            self.__user_item[uid][iid] = rating
+
+            self.__item_user.setdefault(iid,{})
+            self.__user_item[iid][uid] = rating
+
+            item_list.setdefault(iid,array('i')).append(rating)
+
+        for i in item_list:
+            np_array = np.frombuffer(item_list[i])
+            self.__item_mean_std[i] = (np.mean(np_array),np.std(np_array))
+
+    def similarity(self):
+        sim_dct = {}
+        length = len(item_user)
+        for index_i in range(length):
+            i = list(item_user.keys())[index_i]
+            for index_j in range(index_i+1,length):
+                j = list(item_user.keys())[index_j]
+                sim = adjcosine(user_item, item_user, i, j, ave_users, ave_items)
+                addToMat(sim_dct, i, j, sim)
+                addToMat(sim_dct, j, i, sim)
+        return sim_dct 
+
+
+    def predict(self,train_x):
+        pass
+
+    def __cosine(self,i,j):
+        #i,j表示项目id
+        cm_users = self.__commonUsers(i,j)
+        if not cm_users:return 0
+        up = 0.
+        left,rigth = 0.,0.
+        for u in cm_users:
+            up += ((self.__user_item[u][i] - self.__item_mean_std[i][0]) 
+                * (self.__user_item[u][j] - self.__item_mean_std[j][0]))
+            left += (self.__user_item[u][i] - self.__item_mean_std[i][0])**2
+            rigth += (self.__user_item[u][j] - self.__item_mean_std[j][0])**2
+        down = np.sqrt(left * rigth)
+        result = up / down if down > 0 else 0
+        return result
+
+    def __commonUsers(self,i,j):
+        if i in self.__itemuser and j in self.__itemuser:
+            cm_users = set(self.__itemuser[i].keys()) & set(self.__itemuser[j].keys())
+            return cm_users
+        else:
+            return {}
