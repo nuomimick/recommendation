@@ -4,8 +4,8 @@ import pandas as pd
 
 class BaseLoad:
 	def __init__(self,type='np'):
-		self.__df = None
 		self.type = type
+		self.dir = os.path.dirname(__file__)
 	@property
 	def data(self):
 		df = self.df.loc[:,['user_id','item_id','timestamp']]
@@ -22,6 +22,7 @@ class BaseLoad:
 			return df
 	@property
 	def alldata(self):
+		df = self.df
 		if self.type == 'np':
 			return np.array(df)
 		elif self.type == 'pd':
@@ -31,7 +32,7 @@ class load_100k(BaseLoad):
 
 	def __init__(self,type):
 		super().__init__(type)
-		path = os.path.join(os.getcwd(),r'\recommend\data\movielens\ml-100k\u.data')
+		path = os.path.join(self.dir,r'data\movielens\ml-100k\u.data')
 		self.df = pd.read_csv(path,sep='\t',names=['user_id','item_id','rating','timestamp'])
 
 	# @property
@@ -48,13 +49,13 @@ class load_100k(BaseLoad):
 class load_1m(BaseLoad):
 	def __init__(self,type):
 		super().__init__(type)
-		path = os.path.join(os.getcwd(),r'\recommend\data\movielens\ml-1m\ratings.dat')
+		path = os.path.join(self.dir,r'\recommend\data\movielens\ml-1m\ratings.dat')
 		self.df = pd.read_csv(path,sep='\t',names=['user_id','item_id','rating','timestamp'])
 
 class load_10m:
 	def __init__(self,type):
 		super().__init__(type)
-		path = os.path.join(os.getcwd(),r'\recommend\data\movielens\ml-10m\ratings.dat')
+		path = os.path.join(self.dir,r'\recommend\data\movielens\ml-10m\ratings.dat')
 		reader = pd.read_csv(path,sep='::',names=['user_id','item_id','rating','timestamp'],\
 			engine='python',chunksize=100000)
 		self.df = pd.concat([df for df in reader])
@@ -62,7 +63,7 @@ class load_10m:
 class load_20m:
 	def __init__(self,type):
 		super().__init__(type)
-		path = os.path.join(os.getcwd(),r'\recommend\data\movielens\ml-20m\ratings.csv')
+		path = os.path.join(self.dir,r'\recommend\data\movielens\ml-20m\ratings.csv')
 		reader = pd.read_csv(path,sep=',',names=['user_id','item_id','rating','timestamp'],\
 			engine='python',chunksize=100000)
 		self.df = pd.concat([df for df in reader])

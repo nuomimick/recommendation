@@ -1,6 +1,6 @@
 from recommend import datasets
 import os
-print(datasets)
+print(datasets.load_100k('pd'))
 
 
 
