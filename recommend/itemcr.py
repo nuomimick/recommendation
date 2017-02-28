@@ -195,14 +195,20 @@ import numpy as np
 
 class ItemCR:
     def __init__(self,k,method='cosine'):
-        if method == 'cosine':
-            self.sim_method = self.__cosine
-
-    def fit(self,train_x,train_y):
         self.__user_item = {}
         self.__item_user = {}
-        self.__item_mean_std = {}
+        self.__item_scores = {}
+        self.__user_scores = {}
+        self.sim_dct = None
+        self.mean = 0.
+        if method == 'cosine':
+            self.__sim_method = self.__cosine
+            
+
+    def fit(self,train_x,train_y):
         item_list = {}
+        user_list = {}
+        self.mean = np.mean(train_y)
         m,n = train_x.shape
         for i in range(m):
             uid, iid, rating = train_x[i][0],train_x[i][1],train_y[i]
@@ -213,26 +219,63 @@ class ItemCR:
             self.__user_item[iid][uid] = rating
 
             item_list.setdefault(iid,array('i')).append(rating)
+            user_list.setdefault(uid,array('i')).append(rating)
 
         for i in item_list:
             np_array = np.frombuffer(item_list[i])
-            self.__item_mean_std[i] = (np.mean(np_array),np.std(np_array))
+            self.__item_scores[i] = (np.mean(np_array),np.std(np_array))
+        for u in user_list:
+            np_array = np.frombuffer(user_list[u])
+            self.__user_scores[u] = (np.mean(np_array),np.std(np_array))
 
-    def similarity(self):
+        self.sim_dct = self.__similarity()
+
+
+
+    def predict(self,test_x):
+        for index,value in enumerate(test_x):
+            uid,iid = value[0],value[1]
+
+    def report(self,test_y,predict_y):
+        pass
+
+    def __rating(self,u,i):
+        if i in self.__item_user:
+            items = self.__user_item[u]
+            ws = self.sim_dct[i]
+            ws = [x for x in ws.items() if x[0] in items and x[1] != 0]
+            ws = sorted(ws,key=itemgetter(1),reverse=True)[:k]
+            #特殊情况
+            if len(ws) == 0:#item_user[i]不存在或者极少，使用用户均值
+                return self.__user_scores[u][0]
+            s,sw = 0.,0.
+            for item_w in ws:
+                item,w = item_w[0],item_w[1]
+                if self.__item_scores[item][1] == 0:#处理标准差为0的情况，使用用户均值
+                    return self.__user_scores[u]
+                s += w * ((self.__user_item[u][item] - self.__item_scores[item][0]) / self.__item_scores[item][1])
+                sw += np.abs(w)
+            result = self.__item_scores[i][0] + self.__item_scores[i][1] * s / sw
+            if result > 5:result = 5
+            elif result < 1:result = 1
+            return result
+        else:
+            return self.mean
+
+    def __similarity(self):
+        items = self.__item_user.keys()
         sim_dct = {}
-        length = len(item_user)
-        for index_i in range(length):
-            i = list(item_user.keys())[index_i]
-            for index_j in range(index_i+1,length):
-                j = list(item_user.keys())[index_j]
-                sim = adjcosine(user_item, item_user, i, j, ave_users, ave_items)
-                addToMat(sim_dct, i, j, sim)
-                addToMat(sim_dct, j, i, sim)
+        for i in items:
+            sim_dct.setdefault(i,{})
+        for i in range(len(items)):
+            id_i = items[i]
+            for j in range(i+1,len(items)):
+                id_j = items[j]
+                sim = self.__sim_method(id_i, id_j)
+                sim_dct[id_i][id_j] = sim
+                sim_dct[id_j][id_i] = sim
         return sim_dct 
 
-
-    def predict(self,train_x):
-        pass
 
     def __cosine(self,i,j):
         #i,j表示项目id
@@ -241,10 +284,10 @@ class ItemCR:
         up = 0.
         left,rigth = 0.,0.
         for u in cm_users:
-            up += ((self.__user_item[u][i] - self.__item_mean_std[i][0]) 
-                * (self.__user_item[u][j] - self.__item_mean_std[j][0]))
-            left += (self.__user_item[u][i] - self.__item_mean_std[i][0])**2
-            rigth += (self.__user_item[u][j] - self.__item_mean_std[j][0])**2
+            up += ((self.__user_item[u][i] - self.__item_scores[i][0]) 
+                * (self.__user_item[u][j] - self.__item_scores[j][0]))
+            left += (self.__user_item[u][i] - self.__item_scores[i][0])**2
+            rigth += (self.__user_item[u][j] - self.__item_scores[j][0])**2
         down = np.sqrt(left * rigth)
         result = up / down if down > 0 else 0
         return result
@@ -255,3 +298,6 @@ class ItemCR:
             return cm_users
         else:
             return {}
+
+if __name__ == '__main__':
+    pass

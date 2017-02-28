@@ -4,6 +4,7 @@ Created on 2016年9月4日
 @author: Administrator
 @description:lfm算法topN的实现
 '''
+'''
 from __future__ import division
 from sklearn.cross_validation import KFold
 from numpy.random import random
@@ -16,7 +17,7 @@ import time
 import random as rd
 import math
 
-class LFM():
+class LFM:
     def __init__(self,trainMat,testMat):
         self.u2i = dict()
         self.i2u = dict()
@@ -133,4 +134,13 @@ if __name__ == '__main__':
         lfm = LFM(trainData,testData)
         lfm.trainModel(0.015, 0.02, 30, 50)
         lfm.testModel(30)
-        
+'''
+class LFM:
+    def __init__(self,gamma,lamda,steps):
+        pass
+    def fit(self,train_x,train_y):
+        pass
+    def predict(self):
+        pass
+    def report(self):
+        pass      
