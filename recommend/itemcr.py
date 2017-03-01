@@ -67,9 +67,11 @@ class ItemCR:
 
     def predict(self,test_x):
         return np.array([self.__rating(uid,iid) for uid,iid in test_x])
-            
 
-    def report(self,test_y,predict_y):
+    def topN(self,test_x):
+        pass
+
+    def report(self,predict_y,test_y):
         length = len(test_y)
         mae = np.sum(abs(test_y - predict_y)) / length
         rmse = np.sqrt(np.sum(np.power((test_y - predict_y),2)) / length)
@@ -81,8 +83,8 @@ class ItemCR:
         wt = [x for x in wt.items() if x[0] in items]
         wt = sorted(wt,key=itemgetter(1),reverse=True)[:self.__k]
         s,abs_w = 0.,0.
-        for item,w in wt:
-            s += w * items[item]
+        for j,w in wt:
+            s += w * items[j]
             abs_w += abs(w)
         result = s / abs_w
         if result > 5:result = 5
@@ -153,17 +155,11 @@ class ItemCR:
 
 if __name__ == '__main__':   
     df = datasets.load_100k('pd').alldata
-    df = df.groupby('user_id').filter(lambda x:len(x) > 20)
-    df = df.groupby('item_id').filter(lambda x:len(x) > 20)
-    print('过滤finish')
-    data = np.array(df.loc[:,['user_id','item_id']])
-    target = np.array(df.loc[:,'rating'])
-    train_x,test_x,train_y,test_y = train_test_split(data,target,test_size=0.2)
-    print('分割finish')
+    train_x,test_x,train_y,test_y = datasets.filter_deal(df,20,20,0.2)
 
     ir = ItemCR(10,'cosine','zscore')
     ir.fit(train_x,train_y)
-    ir.report(test_y,ir.predict(test_x))
+    ir.report(ir.predict(test_x),test_y)
 
 
 

@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
+
 
 class BaseLoad:
 	def __init__(self,type='np'):
@@ -49,13 +51,13 @@ class load_100k(BaseLoad):
 class load_1m(BaseLoad):
 	def __init__(self,type):
 		super().__init__(type)
-		path = os.path.join(self.dir,r'\recommend\data\movielens\ml-1m\ratings.dat')
+		path = os.path.join(self.dir,r'data\movielens\ml-1m\ratings.dat')
 		self.df = pd.read_csv(path,sep='\t',names=['user_id','item_id','rating','timestamp'])
 
 class load_10m:
 	def __init__(self,type):
 		super().__init__(type)
-		path = os.path.join(self.dir,r'\recommend\data\movielens\ml-10m\ratings.dat')
+		path = os.path.join(self.dir,r'data\movielens\ml-10m\ratings.dat')
 		reader = pd.read_csv(path,sep='::',names=['user_id','item_id','rating','timestamp'],\
 			engine='python',chunksize=100000)
 		self.df = pd.concat([df for df in reader])
@@ -63,10 +65,21 @@ class load_10m:
 class load_20m:
 	def __init__(self,type):
 		super().__init__(type)
-		path = os.path.join(self.dir,r'\recommend\data\movielens\ml-20m\ratings.csv')
+		path = os.path.join(self.dir,r'data\movielens\ml-20m\ratings.csv')
 		reader = pd.read_csv(path,sep=',',names=['user_id','item_id','rating','timestamp'],\
 			engine='python',chunksize=100000)
 		self.df = pd.concat([df for df in reader])
+
+
+def filter_deal(data,ft_u,ft_i,test_size):
+    df = data.groupby('user_id').filter(lambda x:len(x) > ft_u)
+    df = df.groupby('item_id').filter(lambda x:len(x) > ft_i)
+    print('filter finish')
+    data = np.array(df.loc[:,['user_id','item_id']])
+    target = np.array(df.loc[:,'rating'])
+    train_x,test_x,train_y,test_y = train_test_split(data,target,test_size=test_size)
+    print('split finish')
+    return (train_x,test_x,train_y,test_y)
 
 	
 
