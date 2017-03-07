@@ -20,6 +20,11 @@ class ItemCR:
         self.__mean = 0.
         if sim_method == 'cosine':
             self.__sim_method = self.__cosine
+        elif sim_method == 'adjcosine':
+            self.__sim_method = self.__adjcosine
+        elif sim_method == 'pearson':
+            self.__sim_method = self.__pearson    
+
         if std_method == 'origin':
             self.__rating = self.__rating_origin
         elif std_method == 'center':
@@ -31,7 +36,7 @@ class ItemCR:
     def fit(self,train_x,train_y):
         item_dct = {}
         user_dct = {}
-        self.mean = np.mean(train_y)
+        self.__mean = np.mean(train_y)
         m,n = train_x.shape
         for i in range(m):
             uid, iid, rating = train_x[i][0],train_x[i][1],train_y[i]
@@ -74,49 +79,61 @@ class ItemCR:
     def report(self,predict_y,test_y):
         length = len(test_y)
         mae = np.sum(abs(test_y - predict_y)) / length
-        rmse = np.sqrt(np.sum(np.power((test_y - predict_y),2)) / length)
+        rmse = np.sqrt(np.sum(np.power(test_y - predict_y,2)) / length)
         print(mae,rmse)
 
     def __rating_origin(self,u,i):
-        items = self.__user_item[u]
-        wt = self.sim_dct[i]
-        wt = [x for x in wt.items() if x[0] in items]
-        wt = sorted(wt,key=itemgetter(1),reverse=True)[:self.__k]
-        s,abs_w = 0.,0.
-        for j,w in wt:
-            s += w * items[j]
-            abs_w += abs(w)
-        result = s / abs_w
-        if result > 5:result = 5
-        elif result < 1:result = 1
+        if u in self.__user_item and i in self.__item_user:
+            items = self.__user_item[u]
+            wt = self.sim_dct[i]
+            wt = [x for x in wt.items() if x[0] in items]
+            wt = sorted(wt,key=itemgetter(1),reverse=True)[:self.__k]
+            s,abs_w = 0.,0.
+            for j,w in wt:
+                s += w * items[j]
+                abs_w += abs(w)
+            if abs_w == 0:return self.__mean
+            result = s / abs_w
+            if result > 5:result = 5
+            elif result < 1:result = 1
+        else:
+            result = self.__mean
         return result
 
     def __rating_center(self,u,i):
-        items = self.__user_item[u]
-        wt = self.sim_dct[i]
-        wt = [x for x in wt.items() if x[0] in items]
-        wt = sorted(wt,key=itemgetter(1),reverse=True)[:self.__k]
-        s,abs_w = 0.,0.
-        for j,w in wt:
-            s += w * (items[j] - self.__item_scores[j][0])
-            abs_w += abs(w)
-        result = s / abs_w + self.__item_scores[i][0] 
-        if result > 5:result = 5
-        elif result < 1:result = 1
+        if u in self.__user_item and i in self.__item_user:
+            items = self.__user_item[u]
+            wt = self.sim_dct[i]
+            wt = [x for x in wt.items() if x[0] in items]
+            wt = sorted(wt,key=itemgetter(1),reverse=True)[:self.__k]
+            s,abs_w = 0.,0.
+            for j,w in wt:
+                s += w * (items[j] - self.__item_scores[j][0])
+                abs_w += abs(w)
+            if abs_w == 0:return self.__mean
+            result = s / abs_w + self.__item_scores[i][0] 
+            if result > 5:result = 5
+            elif result < 1:result = 1
+        else:
+            result = self.__mean
         return result
 
     def __rating_zscore(self,u,i):
-        items = self.__user_item[u]
-        wt = self.sim_dct[i]
-        wt = [x for x in wt.items() if x[0] in items]
-        wt = sorted(wt,key=itemgetter(1),reverse=True)[:self.__k]
-        s,abs_w = 0.,0.
-        for j,w in wt:
-            s += w * (items[j] - self.__item_scores[j][0]) / self.__item_scores[j][1]
-            abs_w += abs(w)
-        result = s / abs_w * self.__item_scores[i][1] + self.__item_scores[i][0]
-        if result > 5:result = 5
-        elif result < 1:result = 1
+        if u in self.__user_item and i in self.__item_user:
+            items = self.__user_item[u]
+            wt = self.sim_dct[i]
+            wt = [x for x in wt.items() if x[0] in items]
+            wt = sorted(wt,key=itemgetter(1),reverse=True)[:self.__k]
+            s,abs_w = 0.,0.
+            for j,w in wt:
+                s += w * (items[j] - self.__item_scores[j][0]) / self.__item_scores[j][1]
+                abs_w += abs(w)
+            if abs_w == 0:return self.__mean
+            result = s / abs_w * self.__item_scores[i][1] + self.__item_scores[i][0]
+            if result > 5:result = 5
+            elif result < 1:result = 1
+        else:
+            result = self.__mean
         return result
 
     def __similarity(self):
@@ -140,14 +157,46 @@ class ItemCR:
         users_i = self.__item_user[i]
         users_j = self.__item_user[j]
 
-        sum_ij = np.sum(np.power(np.array(list(users_i.values())),2)) * \
+        sum_lr = np.sum(np.power(np.array(list(users_i.values())),2)) * \
                 np.sum(np.power(np.array(list(users_j.values())),2))
         
         sum_u = 0.
         for u in users:
             sum_u += users_i[u] * users_j[u]    
-        return sum_u / np.sqrt(sum_ij)
-        return sum_u / sum_ij
+        return sum_u / np.sqrt(sum_lr)
+        return sum_u / sum_lr
+
+    def __adjcosine(self,i,j):
+        users = self.__commonUsers(i, j)
+        if len(users) == 0:return 0
+        users_i = self.__item_user[i]
+        users_j = self.__item_user[j]
+
+        sum_up = 0.
+        sum_l,sum_r = 0.,0.
+        for u in users:
+            sum_up += (users_i[u] - self.__user_scores[u][0]) * (users_j[u] - self.__user_scores[u][0])
+            sum_l += (users_i[u] - self.__user_scores[u][0])**2
+            sum_r += (users_j[u] - self.__user_scores[u][0])**2
+        sum_lr = np.sqrt(sum_l * sum_r)
+        result = sum_up / sum_lr if sum_lr > 0 else 0#common users is little
+        return result
+
+    def __pearson(self,i,j):
+        cusers = self.__commonUsers(i, j)
+        if len(cusers) == 0:return 0
+        users_i = self.__item_user[i]
+        users_j = self.__item_user[j]
+
+        sum_up = 0.
+        sum_l,sum_r = 0.,0.
+        for u in cusers:
+            sum_up += ((users_i[u] - self.__item_scores[i][0]) * (users_j[u] - self.__item_scores[j][0]))
+            sum_l += (users_i[u] - self.__item_scores[i][0])**2
+            sum_r += (users_j[u] - self.__item_scores[j][0])**2
+        sum_lr = np.sqrt(sum_l * sum_r)
+        result = sum_up / sum_lr if sum_lr > 0 else 0
+        return result
 
     def __commonUsers(self,i,j):
         cm_users = set(self.__item_user[i].keys()) & set(self.__item_user[j].keys())
@@ -155,9 +204,9 @@ class ItemCR:
 
 if __name__ == '__main__':   
     df = datasets.load_100k('pd').alldata
-    train_x,test_x,train_y,test_y = datasets.filter_deal(df,20,20,0.2)
+    train_x,test_x,train_y,test_y = datasets.filter_deal(df,0,0,0.2)
 
-    ir = ItemCR(10,'cosine','zscore')
+    ir = ItemCR(10,'pearson','zscore')
     ir.fit(train_x,train_y)
     ir.report(ir.predict(test_x),test_y)
 
