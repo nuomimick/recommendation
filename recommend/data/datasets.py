@@ -77,7 +77,7 @@ def filter_deal(data,ft_u,ft_i,test_size):
 	print('filter finish')
 	data = np.array(df.loc[:,['user_id','item_id']])
 	target = np.array(df.loc[:,'rating'])
-	train_x,test_x,train_y,test_y = train_test_split(data,target,test_size=test_size,random_state=1)
+	train_x,test_x,train_y,test_y = train_test_split(data,target,test_size=test_size,random_state=0)
 	print('split finish')
 	return (train_x,test_x,train_y,test_y)
 

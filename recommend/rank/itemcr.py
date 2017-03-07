@@ -60,14 +60,36 @@ class ItemCR:
         else:
             t = time.time()
             self.sim_dct = self.__similarity()
-            print(time.time() - t)
+            print("cost time %f" % (time.time() - t))
             with open(filename,'wb') as f:
                 pk.dump(self.sim_dct,f)
         print('finish calculate similarity')
 
+    def topN(self,test_x,top_n):
+        all_items = set(self.__item_user)
+        recommend_dict = {}
+        for uid,iid in test_x:
+            unrating_items = all_items - set(self.__user_item[uid])
+            ratings = [self.__rating(uid,iid) for iid in unrating_items]
+            ratings = sorted(ratings,reverse=True)[:top_n]
+            recommend_dict.setdefault(uid,ratings)
+        return recommend_dict
 
-    def topN(self,test_x):
-        pass
+    def report(self,test_x,top_n=10):
+        user_item = {}
+        for u,i in test_x:
+            user_item.setdefault(u,{})
+            user_item[u][i] = 1
+        recommend_dict = self.topN(test_x,top_n)
+        p, r = 0., 0.
+        for u in recommend_dict:
+            cm_users = set(user_item[u]) & set(recommend_dict[u])
+            p = len(cm_users) / top_n
+            r = len(cm_users) / len(user_item[u])
+        precision = p / len(recommend_dict)
+        recall = r / len(recommend_dict)
+        print("precision=%f,recall=%f" % (precision,recall))
+
 
     def __rating_origin(self,u,i):
         if u in self.__user_item and i in self.__item_user:
@@ -191,11 +213,13 @@ class ItemCR:
 
 if __name__ == '__main__':
     from recommend.data import datasets
-    df = datasets.load_100k('pd').alldata
-    train_x,test_x,train_y,test_y = datasets.filter_deal(df,0,0,0.2)
 
-    ir = ItemCR(10,'pearson','zscore')
+    df = datasets.load_100k('pd').alldata
+    train_x,test_x,train_y,test_y = datasets.filter_deal(df,20,20,0.2)
+
+    ir = ItemCR(10,'cosine','origin')
     ir.fit(train_x,train_y)
+    ir.report(test_x,10)
 
 
 

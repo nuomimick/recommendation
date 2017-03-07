@@ -1,12 +1,9 @@
 from numpy.random import random
 import numpy as np
 
-from sklearn.model_selection import train_test_split
-import time
-
 class LFM:
-    def __init__(self,gamma,lamda,steps,f):
-        self.__gamma = gamma
+    def __init__(self,lr,lamda,f,steps):
+        self.__lr = lr
         self.__lamda = lamda
         self.__steps = steps
         self.__f = f
@@ -15,7 +12,7 @@ class LFM:
         self.p = {}
         self.q = {}
 
-    def fit(self,train_x,train_y):
+    def fit(self,train_x,train_y,test_x,test_y):
         m,n = train_x.shape
         for i in range(m):
             uid, iid, rating = train_x[i][0],train_x[i][1],train_y[i]
@@ -30,16 +27,16 @@ class LFM:
         for i in self.__item_user:
             self.q.setdefault(i,random(self.__f) / np.sqrt(self.__f))
 
-        t = time.time()
-        for step in range(self.__steps):
+        for _ in range(self.__steps):
+            lfm.report(lfm.predict(test_x),test_y)
             for u in self.__user_item:
                 dict_items = self.__user_item[u]
                 for i,r in dict_items.items():
                     e = r - np.dot(self.p[u],self.q[i])
                     tmp = self.q[i]
-                    self.q[i] += self.__gamma * (e * self.p[u] - self.__lamda * tmp)
-                    self.p[u] += self.__gamma * (e * tmp - self.__lamda * self.p[u])
-        print(time.time() - t)
+                    self.q[i] += self.__lr * (e * self.p[u] - self.__lamda * tmp)
+                    self.p[u] += self.__lr * (e * tmp - self.__lamda * self.p[u])
+            self.__lf *= 0.9
         print('iteration finished')
 
     def predict(self,test_x):
@@ -54,9 +51,9 @@ class LFM:
 if __name__ == '__main__':
     from recommend.data import datasets
 
-    df = datasets.load_1m('pd').alldata
-    train_x,test_x,train_y,test_y = datasets.filter_deal(df,20,20,0.2)
+    df = datasets.load_100k('pd').alldata
+    train_x,test_x,train_y,test_y = datasets.filter_deal(df,10,10,0.2)
 
-    lfm = LFM(0.015, 0.02, 30, 50)
-    lfm.fit(train_x,train_y) 
+    lfm = LFM(0.015, 0.02, 50, 50)
+    lfm.fit(train_x,train_y,test_x,test_y)
     lfm.report(lfm.predict(test_x),test_y)     
