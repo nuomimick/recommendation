@@ -1,12 +1,8 @@
 from array import array
 import numpy as np
-import pandas as pd
-import datasets
-from sklearn.model_selection import train_test_split
 import pickle as pk
 from operator import itemgetter
 import os
-import math
 import time
 
 class ItemCR:
@@ -70,17 +66,8 @@ class ItemCR:
         print('finish calculate similarity')
 
 
-    def predict(self,test_x):
-        return np.array([self.__rating(uid,iid) for uid,iid in test_x])
-
     def topN(self,test_x):
         pass
-
-    def report(self,predict_y,test_y):
-        length = len(test_y)
-        mae = np.sum(abs(test_y - predict_y)) / length
-        rmse = np.sqrt(np.sum(np.power(test_y - predict_y,2)) / length)
-        print(mae,rmse)
 
     def __rating_origin(self,u,i):
         if u in self.__user_item and i in self.__item_user:
@@ -163,7 +150,7 @@ class ItemCR:
         sum_u = 0.
         for u in users:
             sum_u += users_i[u] * users_j[u]    
-        return sum_u / np.sqrt(sum_lr)
+        sum_lr = sum_u / np.sqrt(sum_lr)
         return sum_u / sum_lr
 
     def __adjcosine(self,i,j):
@@ -202,13 +189,13 @@ class ItemCR:
         cm_users = set(self.__item_user[i].keys()) & set(self.__item_user[j].keys())
         return cm_users
 
-if __name__ == '__main__':   
+if __name__ == '__main__':
+    from recommend.data import datasets
     df = datasets.load_100k('pd').alldata
     train_x,test_x,train_y,test_y = datasets.filter_deal(df,0,0,0.2)
 
     ir = ItemCR(10,'pearson','zscore')
     ir.fit(train_x,train_y)
-    ir.report(ir.predict(test_x),test_y)
 
 
 

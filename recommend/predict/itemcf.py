@@ -1,11 +1,8 @@
 from array import array
 import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
 import pickle as pk
 from operator import itemgetter
 import os
-import math
 import time
 
 class ItemCR:
