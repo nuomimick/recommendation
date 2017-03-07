@@ -63,7 +63,7 @@ class ItemCR:
         else:
             t = time.time()
             self.sim_dct = self.__similarity()
-            print(time.time() - t)
+            print('cost time %f' % (time.time() - t))
             with open(filename,'wb') as f:
                 pk.dump(self.sim_dct,f)
         print('finish calculate similarity')
@@ -72,14 +72,11 @@ class ItemCR:
     def predict(self,test_x):
         return np.array([self.__rating(uid,iid) for uid,iid in test_x])
 
-    def topN(self,test_x):
-        pass
-
     def report(self,predict_y,test_y):
         length = len(test_y)
         mae = np.sum(abs(test_y - predict_y)) / length
         rmse = np.sqrt(np.sum(np.power(test_y - predict_y,2)) / length)
-        print(mae,rmse)
+        print("mae=%f,rmse=%f" % (mae,rmse))
 
     def __rating_origin(self,u,i):
         if u in self.__user_item and i in self.__item_user:
@@ -162,7 +159,7 @@ class ItemCR:
         sum_u = 0.
         for u in users:
             sum_u += users_i[u] * users_j[u]    
-        return sum_u / np.sqrt(sum_lr)
+        sum_lr = sum_u / np.sqrt(sum_lr)
         return sum_u / sum_lr
 
     def __adjcosine(self,i,j):
