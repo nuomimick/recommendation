@@ -25,7 +25,7 @@ class SVD:
         self.__bi = {}
         self.mean = 0.
 
-    def fit(self, train_x, train_y,test_x,test_y):
+    def fit(self, train_x, train_y):
         self.mean = np.mean(train_y)
         m, n = train_x.shape
         for i in range(m):
@@ -44,7 +44,6 @@ class SVD:
             self.__qi.setdefault(i,random(self.__ft) / math.sqrt(self.__ft))
 
         for _ in range(self.__steps):
-            self.report(self.predict(test_x),test_y)
             for u in self.__user_item:
                 items = self.__user_item[u]
                 for i,r in items.items():
@@ -68,14 +67,16 @@ class SVD:
         mae = np.sum(abs(test_y - predict_y)) / length
         rmse = np.sqrt(np.sum(np.power(test_y - predict_y,2)) / length)
         print("mae=%f,rmse=%f" % (mae, rmse))
+
+
         
 if __name__ == '__main__':
     from recommend.data import datasets
     df = datasets.load_100k('pd').alldata
     train_x,test_x,train_y,test_y = datasets.filter_deal(df,10,10,0.2)
-
+    a = 'hello world'
     svd = SVD(0.01,0.01,50,50)
-    svd.fit(train_x,train_y,test_x,test_y)
+    svd.fit(train_x,train_y)
     svd.report(svd.predict(test_x),test_y)
         
         

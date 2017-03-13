@@ -12,7 +12,7 @@ class LFM:
         self.p = {}
         self.q = {}
 
-    def fit(self,train_x,train_y,test_x,test_y):
+    def fit(self,train_x,train_y):
         m,n = train_x.shape
         for i in range(m):
             uid, iid, rating = train_x[i][0],train_x[i][1],train_y[i]
@@ -28,7 +28,6 @@ class LFM:
             self.q.setdefault(i,random(self.__f) / np.sqrt(self.__f))
 
         for _ in range(self.__steps):
-            lfm.report(lfm.predict(test_x),test_y)
             for u in self.__user_item:
                 dict_items = self.__user_item[u]
                 for i,r in dict_items.items():
@@ -55,5 +54,5 @@ if __name__ == '__main__':
     train_x,test_x,train_y,test_y = datasets.filter_deal(df,10,10,0.2)
 
     lfm = LFM(0.015, 0.02, 50, 50)
-    lfm.fit(train_x,train_y,test_x,test_y)
+    lfm.fit(train_x,train_y)
     lfm.report(lfm.predict(test_x),test_y)     

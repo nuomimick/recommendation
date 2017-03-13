@@ -1,116 +1,98 @@
-'''
-Created on 2016年9月4日
-
-@author: Administrator
-@description:svdpp算法的实现
-'''
 from __future__ import division
-from sklearn import cross_validation as cv
 from numpy.random import random
 import numpy as np
+import math
 import pandas as pd
 import pickle as pk
 import os
 import time
-def getData():
-    if os.path.exists("train.pk") and os.path.exists("test.pk"):
-        with open("train.pk","rb") as f:
-            trainData = pk.load(f)
-        with open("test.pk","rb") as f:
-            testData = pk.load(f)
-    else:    
-        filename = "E:\\movielens\\ml-100k\\ml-100k\\u.data"
-        header = ['userid','itemid','rating','timastamp']
-        df = pd.read_csv(filename, sep = "\t", names = header)
-        trainData,testData = cv.train_test_split(df,test_size=0.2)
-        with open("train.pk","wb") as f:
-            pk.dump(trainData,f)
-        with open("test.pk","wb") as f:
-            pk.dump(testData,f)
-    return trainData,testData
 
-def addToMat(mat,i,j,r):
-    mat.setdefault(i,{})
-    mat[i][j] = r
+class SVDPP:
 
-def init(trainData):
-    user_item = dict()
-    item_user = dict()
-    miu = 0.0
-    for line in trainData.itertuples():
-        u,i,r = line[1],line[2],line[3]
-        addToMat(user_item, u, i, r)
-        addToMat(item_user, i, u, r)
-        miu += r
-    return user_item,item_user,miu / trainData.shape[0]
+    def __init__(self,lr,lamda1,lamda2,ft,steps):
+        '''
+        lr: learing rate
+        lamda: egularization factor
+        ft:factor dimension
+        '''
+        self.__lr = lr
+        self.__lamda1 = lamda1
+        self.__lamda2 = lamda2
+        self.__ft = ft
+        self.__steps = steps
+        self.__user_item = {}
+        self.__item_user = {}
+        self.__pu = {}
+        self.__qi = {}
+        self.__y = {}
+        self.__bu = {}
+        self.__bi = {}
+        self.mean = 0.
 
+    def fit(self,train_x,train_y):
+        self.mean = np.mean(train_y)
+        m, n = train_x.shape
+        for i in range(m):
+            uid, iid, rating = train_x[i][0],train_x[i][1],train_y[i]
+            self.__user_item.setdefault(uid,{})
+            self.__user_item[uid][iid] = rating
 
-def predict(user_item,item_user, u, i, miu, bu, bi,q,s):
-    #print(miu,bu[u],bi[i],np.sum(q[i]*(p[u] + s)))
-    if u in user_item and i in item_user:
-        rui = miu + bu[u] + bi[i] + np.sum(q[i]*s)
-    else:rui = miu
-    return rui
+            self.__item_user.setdefault(iid,{})
+            self.__item_user[iid][uid] = rating
 
-def sumy(user_item,u,p,y):
-    dict_items = user_item[u]
-    s = 0
-    for j in dict_items.keys():
-        s += y[j]
-    return s / np.sqrt(len(dict_items)) + p[u]
-
-def train(user_item,item_user,miu):
-    bu = dict()
-    bi = dict()
-    q = dict()
-    p = dict()
-    y = dict()
-    f = 200
-    for u in user_item.keys():
-        bu.setdefault(u,0)
-        p.setdefault(u,random(f) / np.sqrt(f))
-        for i in user_item[u].keys():
-            bi.setdefault(i,0)
-            q.setdefault(i,random(f) / np.sqrt(f))
-            y.setdefault(i,random(f) / np.sqrt(f))
+        for u in self.__user_item:
+            self.__bu.setdefault(u,0)
+            self.__pu.setdefault(u,random(self.__ft) / math.sqrt(self.__ft))
+        for i in self.__item_user:
+            self.__bi.setdefault(i,0)
+            self.__qi.setdefault(i,random(self.__ft) / math.sqrt(self.__ft))
+            self.__y.setdefault(i,random(self.__ft) / math.sqrt(self.__ft))
             
-    gama = 0.009
-    lamda = 0.005
-    lamda1 = 0.015
-    k = 30
-    for t in range(k):
-        for u in user_item:
-            dict_items = user_item[u]
-            sums = 0
-            s = sumy(user_item, u, p, y)
-            for i,r in dict_items.items():
-                eui = r - predict(user_item,item_user,u,i,miu,bu,bi,q,s)
-                bu[u] += gama * (eui - lamda * bu[u])
-                bi[i] += gama * (eui - lamda * bi[i])
-                temp = q[i]
-                sums += temp * eui
-                q[i] += gama * (eui * s - lamda1 * temp)
-                p[u] += gama * (eui * temp - lamda1 * p[u])
-            for j in dict_items.keys():
-                y[j] += gama * (sums / np.sqrt(len(dict_items)) - lamda1 * y[j])
-        gama *= 0.9
-    return bu,bi,q,p,y
+        for _ in range(self.__steps):
+            self.report(self.predict(train_x),train_y)
+            for u in self.__user_item:
+                items = self.__user_item[u]
+                sums = 0.
+                s = self.__y_sum(u)
+                for i,r in items.items():
+                    err = r - self.__rating(u,i,s)
+                    self.__bu[u] += self.__lr * (err - self.__lamda1 * self.__bu[u])
+                    self.__bi[i] += self.__lr * (err - self.__lamda1 * self.__bi[i])
+                    temp = self.__qi[i]
+                    sums += temp * err
+                    self.__qi[i] += self.__lr * (err * s - self.__lamda2 * temp)
+                    self.__pu[u] += self.__lr * (err * temp - self.__lamda2 * self.__pu[u])
+                for j in items.keys():
+                    self.__y[j] += self.__lr * (sums / np.sqrt(len(items)) -
+                                                self.__lamda2 * self.__y[j])
+            self.__lr *= 0.9
 
-def test():
-    trainData, testData = getData()
-    user_item,item_user,miu= init(trainData)
-    bu,bi,q,p,y = train(user_item,item_user,miu)
-    print("训练完成！")
-    test_user2item,test_item2user,test_miu = init(testData)
-    s = 0.0
-    for u in test_user2item:
-        ss = sumy(user_item, u, p, y)
-        for i,r in test_user2item[u].items():          
-            eui = r - predict(user_item,item_user, u, i, miu, bu, bi,q,ss)
-            s += eui ** 2
-    rmse = np.sqrt(s / testData.shape[0])
-    print("rmse: %f" % rmse)
+    def __rating(self, u, i, s):
+        rating = self.mean + self.__bu[u] + self.__bi[i] + np.dot(self.__qi[i], s)
+        return rating
+
+    def __y_sum(self,u):
+        r = np.sum([self.__y[j] for j in self.__user_item[u].keys()],axis=0)
+        return r / math.sqrt(len(self.__user_item[u])) + self.__pu[u]
+
+    def predict(self,test_x):
+        predict_y = []
+        for uid,iid in test_x:
+            s = self.__y_sum(uid)
+            predict_y.append(self.__rating(uid,iid,s))
+        return predict_y
+
+    def report(self,predict_y,test_y):
+        length = len(test_y)
+        mae = np.sum(abs(test_y - predict_y)) / length
+        rmse = np.sqrt(np.sum(np.power(test_y - predict_y,2)) / length)
+        print("mae=%f,rmse=%f" % (mae, rmse))
 
 if __name__ == '__main__':
-    for i in range(5):
-        test()
+    from recommend.data import datasets
+    df = datasets.load_100k('pd').alldata
+    train_x,test_x,train_y,test_y = datasets.filter_deal(df,10,10,0.2)
+
+    svd = SVDPP(0.009,0.005,0.015,50,50)
+    svd.fit(train_x,train_y)
+    svd.report(svd.predict(test_x),test_y)
