@@ -1,8 +1,7 @@
 from numpy.random import random
 import numpy as np
-
-from sklearn.model_selection import train_test_split
-import time
+from random import randint
+from operator import itemgetter
 
 class LFM:
     def __init__(self,lr,lamda,steps,f):
@@ -23,7 +22,7 @@ class LFM:
             length = len(items)
             count = 0
             for i in range(10 * length):
-                item = self.items_pool[rd.randint(0,len(items_pool)-1)]
+                item = self.items_pool[randint(0,len(self.items_pool)-1)]
                 if item not in items:
                     self.__user_item[u][item] = 0
                     self.__item_user[item][u] = 0
@@ -43,7 +42,7 @@ class LFM:
 
             self.items_pool.append(iid)
 
-
+        self.selectNegativeSample(1)
 
         for u in self.__user_item:
             self.p.setdefault(u,random(self.__f) / np.sqrt(self.__f))
@@ -51,6 +50,7 @@ class LFM:
             self.q.setdefault(i,random(self.__f) / np.sqrt(self.__f))
 
         for step in range(self.__steps):
+            print(step)
             for u in self.__user_item:
                 dict_items = self.__user_item[u]
                 for i,r in dict_items.items():
@@ -58,17 +58,33 @@ class LFM:
                     tmp = self.q[i]
                     self.q[i] += self.__lr * (e * self.p[u] - self.__lamda * tmp)
                     self.p[u] += self.__lr * (e * tmp - self.__lamda * self.p[u])
-            self.lr *= 0.9
+            self.__lr *= 0.9
         print('iteration finished')
 
-    def predict(self,test_x):
-        return np.array([np.dot(self.p[u], self.q[i]) for u,i in test_x])
+    def topN(self,test_x,top_n):
+        all_items = set(self.__item_user)
+        recommend_dict = {}
+        for uid, iid in test_x:
+            unrating_items = all_items - set(self.__user_item[uid])
+            ratings = [(iid, np.dot(self.p[uid],self.q[iid])) for iid in unrating_items]
+            ratings = sorted(ratings, key=itemgetter(1), reverse=True)[:top_n]
+            recommend_dict.setdefault(uid, [tup[0] for tup in ratings])
+        return recommend_dict
 
-    def report(self,predict_y,test_y):
-        length = len(test_y)
-        mae = np.sum(abs(test_y - predict_y)) / length
-        rmse = np.sqrt(np.sum(np.power((test_y - predict_y),2)) / length)
-        print("mae=%f,rmse=%f" % (mae, rmse))
+    def report(self,test_x,top_n=10):
+        user_item = {}
+        for u,i in test_x:
+            user_item.setdefault(u,{})
+            user_item[u][i] = 1
+        recommend_dict = self.topN(test_x,top_n)
+        p, r = 0., 0.
+        for u in recommend_dict:
+            cm_users = set(user_item[u]) & set(recommend_dict[u])
+            p += len(cm_users) / top_n
+            r += len(cm_users) / len(user_item[u])
+        precision = p / len(recommend_dict)
+        recall = r / len(recommend_dict)
+        print("precision=%f,recall=%f" % (precision,recall))
 
 if __name__ == '__main__':
     from recommend.data import datasets
@@ -76,6 +92,6 @@ if __name__ == '__main__':
     df = datasets.load_1m('pd').alldata
     train_x,test_x,train_y,test_y = datasets.filter_deal(df,20,20,0.2)
 
-    lfm = LFM(0.015, 0.02, 30, 50)
+    lfm = LFM(0.015, 0.02, 5, 50)
     lfm.fit(train_x,train_y) 
-    lfm.report(lfm.predict(test_x),test_y)     
+    lfm.report(test_x,10)

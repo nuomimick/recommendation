@@ -4,6 +4,7 @@ import pickle as pk
 from operator import itemgetter
 import os
 import time
+from random import sample
 
 class ItemCR:
     def __init__(self,k,sim_method='cosine',std_method='origin'):
@@ -69,10 +70,11 @@ class ItemCR:
         all_items = set(self.__item_user)
         recommend_dict = {}
         for uid,iid in test_x:
-            unrating_items = all_items - set(self.__user_item[uid])
-            ratings = [self.__rating(uid,iid) for iid in unrating_items]
-            ratings = sorted(ratings,reverse=True)[:top_n]
-            recommend_dict.setdefault(uid,ratings)
+            #unrating_items = sample(all_items - set(self.__user_item[uid]),30)
+            unrating_items = sample(all_items - set(self.__user_item[uid]),30)
+            ratings = [(iid,self.__rating(uid,iid)) for iid in unrating_items]
+            ratings = sorted(ratings,key=itemgetter(1),reverse=True)[:top_n]
+            recommend_dict.setdefault(uid,[tup[0] for tup in ratings])
         return recommend_dict
 
     def report(self,test_x,top_n=10):
@@ -84,8 +86,8 @@ class ItemCR:
         p, r = 0., 0.
         for u in recommend_dict:
             cm_users = set(user_item[u]) & set(recommend_dict[u])
-            p = len(cm_users) / top_n
-            r = len(cm_users) / len(user_item[u])
+            p += len(cm_users) / top_n
+            r += len(cm_users) / len(user_item[u])
         precision = p / len(recommend_dict)
         recall = r / len(recommend_dict)
         print("precision=%f,recall=%f" % (precision,recall))
