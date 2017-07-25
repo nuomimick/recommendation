@@ -1,6 +1,7 @@
 import numpy as np
 
 
+
 def mean_reciprocal_rank(rs):
     rs = (np.asarray(r).nonzero()[0] for r in rs)
     return np.mean([1. / (r[0] + 1) if r.size else 0. for r in rs])
@@ -31,7 +32,6 @@ def ndcg_at_k(r, k):
     dcg_max = dcg_at_k(sorted(r, reverse=True), k)
     if not dcg_max:
         return 0.
-    print(dcg_at_k(r,k))
     return dcg_at_k(r, k) / dcg_max
 
 def err_at_k(array,n):
@@ -44,6 +44,7 @@ def err_at_k(array,n):
 
 
 if __name__ == "__main__":
-    a = [5,5,0,0,0]
-    print(r_precision(a))
-    print(err_at_k(a, 5))
+    a = [1,2,3,4,5]
+    b = [5,4,3,2,1]
+    print(ndcg_at_k(a,5))
+    print(err_at_k(a,5))

@@ -73,8 +73,7 @@ class SVD:
 if __name__ == '__main__':
     from recommend.data import datasets
     df = datasets.load_100k('pd').alldata
-    train_x,test_x,train_y,test_y = datasets.filter_deal(df,10,10,0.2)
-    a = 'hello world'
+    train_x,test_x,train_y,test_y = datasets.filter_split(df,10,10,0.2)
     svd = SVD(0.01,0.01,50,50)
     svd.fit(train_x,train_y)
     svd.report(svd.predict(test_x),test_y)

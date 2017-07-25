@@ -198,7 +198,7 @@ class ItemCR:
 if __name__ == '__main__':   
     from recommend.data import datasets
     df = datasets.load_100k('pd').alldata
-    train_x,test_x,train_y,test_y = datasets.filter_deal(df,0,0,0.2)
+    train_x,test_x,train_y,test_y = datasets.filter_split(df,0,0,0.2)
 
     ir = ItemCR(10,'pearson','zscore')
     ir.fit(train_x,train_y)

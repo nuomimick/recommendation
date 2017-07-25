@@ -84,14 +84,14 @@ class LFM:
             r += len(cm_users) / len(user_item[u])
         precision = p / len(recommend_dict)
         recall = r / len(recommend_dict)
-        print("precision=%f,recall=%f" % (precision,recall))
+        print("precision=%f\nrecall=%f" % (precision,recall))
 
 if __name__ == '__main__':
     from recommend.data import datasets
 
     df = datasets.load_1m('pd').alldata
-    train_x,test_x,train_y,test_y = datasets.filter_deal(df,20,20,0.2)
+    train_x,test_x,train_y,test_y = datasets.filter_split(df,20,20,0.2)
 
     lfm = LFM(0.015, 0.02, 5, 50)
-    lfm.fit(train_x,train_y) 
+    lfm.fit(train_x,train_y)
     lfm.report(test_x,10)

@@ -91,7 +91,7 @@ class SVDPP:
 if __name__ == '__main__':
     from recommend.data import datasets
     df = datasets.load_100k('pd').alldata
-    train_x,test_x,train_y,test_y = datasets.filter_deal(df,10,10,0.2)
+    train_x,test_x,train_y,test_y = datasets.filter_split(df,10,10,0.2)
 
     svd = SVDPP(0.009,0.005,0.015,50,50)
     svd.fit(train_x,train_y)

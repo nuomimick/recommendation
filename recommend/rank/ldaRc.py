@@ -91,6 +91,13 @@ class ldaRc:
             recommend_dict.setdefault(user,recommend_items)
         return recommend_dict
 
+    def evaluate(self,test_x,test_y):
+        R = np.matrix(self.doc_topic) * np.matrix(self.topic_word)
+        print(R)
+        m = len(test_x)
+        for i in range(m):
+            u,i,r = test_x[i][0],test_x[i][1],test_y[i]
+
     def report(self,test_x,top_n=10):
         user_item = {}
         for u,i in test_x:
@@ -109,9 +116,10 @@ class ldaRc:
 if __name__ == '__main__':
     from recommend.data import datasets
 
-    df = datasets.load_1m('pd').alldata
-    train_x,test_x,train_y,test_y = datasets.filter_deal(df,20,20,0.2)
+    df = datasets.load_100k('pd').alldata
+    train_x,test_x,train_y,test_y = datasets.filter_split(df,20,20,0.2)
 
-    ld = ldaRc(20,90)
+    ld = ldaRc(20,100)
     ld.fit(train_x,train_y)
-    ld.report(test_x)
+    ld.evaluate(test_x,test_y)
+    # ld.report(test_x)
