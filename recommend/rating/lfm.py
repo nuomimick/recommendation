@@ -35,11 +35,11 @@ class LFM:
 
     def fit(self, train, test):
         np.random.seed(0)
-        # self.__user_item, self.__item_user = self.transform(train)
-        # test_ui, test_iu = self.transform(test)
+        self.__user_item, self.__item_user = self.transform(train)
+        test_ui, test_iu = self.transform(test)
 
-        self.__user_item, self.__item_user = train
-        test_ui, test_iu = test
+        # self.__user_item, self.__item_user = train
+        # test_ui, test_iu = test
 
         for u in self.__user_item:
             self.p.setdefault(u, random(self.__f) / np.sqrt(self.__f))
@@ -47,30 +47,30 @@ class LFM:
             self.q.setdefault(i, random(self.__f) / np.sqrt(self.__f))
 
         for _ in range(self.__steps):
-            for u in self.__user_item:
-                dict_items = self.__user_item[u]
-                for i, r in dict_items.items():
-                    e = r - np.dot(self.p[u], self.q[i])
-                    tmp = self.q[i]
-                    self.q[i] += self.__lr * (e * self.p[u] - self.__lamda * tmp)
-                    self.p[u] += self.__lr * (e * tmp - self.__lamda * self.p[u])
+            # for u in self.__user_item:
+            #     dict_items = self.__user_item[u]
+            #     for i, r in dict_items.items():
+            #         e = r - np.dot(self.p[u], self.q[i])
+            #         tmp = self.q[i]
+            #         self.q[i] += self.__lr * (e * self.p[u] - self.__lamda * tmp)
+            #         self.p[u] += self.__lr * (e * tmp - self.__lamda * self.p[u])
 
             # 另一种更新方式
-            # for u in self.__user_item:
-            #     temp = 0
-            #     for i in self.__user_item[u]:
-            #         r = self.__user_item[u][i]
-            #         e = r - np.dot(self.p[u],self.q[i])
-            #         temp += (e * self.q[i] - self.__lamda * self.p[u])
-            #     self.p[u] += self.__lr * temp
-            #
-            # for i in self.__item_user:
-            #     temp = 0
-            #     for u in self.__item_user[i]:
-            #         r = self.__item_user[i][u]
-            #         e = r - np.dot(self.p[u],self.q[i])
-            #         temp += (e * self.p[u] - self.__lamda * self.q[i])
-            #     self.q[i] += self.__lr * temp
+            for u in self.__user_item:
+                temp = 0
+                for i in self.__user_item[u]:
+                    r = self.__user_item[u][i]
+                    e = r - np.dot(self.p[u],self.q[i])
+                    temp += (e * self.q[i] - self.__lamda * self.p[u])
+                self.p[u] += self.__lr * temp
+
+            for i in self.__item_user:
+                temp = 0
+                for u in self.__item_user[i]:
+                    r = self.__item_user[i][u]
+                    e = r - np.dot(self.p[u],self.q[i])
+                    temp += (e * self.p[u] - self.__lamda * self.q[i])
+                self.q[i] += self.__lr * temp
 
 
             rmse, count = 0, 0
@@ -97,15 +97,15 @@ if __name__ == '__main__':
     from recommend.data import datasets
     from sklearn.model_selection import train_test_split
 
-    # df = datasets.load_100k('pd').alldata
-    # df_train, df_test = train_test_split(df, test_size=0.2)
-    # uidset = set(df_test.user_id) - set(df_train.user_id)
-    # if uidset:
-    #     df_test = df_test[~df_test["user_id"].isin(uidset)]
-    # iidset = set(df_test.item_id) - set(df_train.item_id)
-    # if iidset:
-    #     df_test = df_test[~df_test["item_id"].isin(iidset)]
+    df = datasets.load_100k('pd').alldata
+    df_train, df_test = train_test_split(df, test_size=0.2)
+    uidset = set(df_test.user_id) - set(df_train.user_id)
+    if uidset:
+        df_test = df_test[~df_test["user_id"].isin(uidset)]
+    iidset = set(df_test.item_id) - set(df_train.item_id)
+    if iidset:
+        df_test = df_test[~df_test["item_id"].isin(iidset)]
 
-    df_train, df_test = datasets.split_musical_instruments()
-    lfm = LFM(0.01, 0.05, 10, 100)
+    # df_train, df_test = datasets.split_musical_instruments()
+    lfm = LFM(0.001, 0.005, 10, 100)
     lfm.fit(df_train[:-1], df_test[:-1])

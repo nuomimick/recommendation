@@ -3,6 +3,7 @@ import pandas as pd
 from math import exp, log
 from numpy.random import random
 import rank_metrics
+from functools import reduce
 
 
 class ListRankMF:
@@ -42,41 +43,38 @@ class ListRankMF:
             self.__item_user[iid][uid] = rating
 
         for u in self.__user_item:
-            self.U.setdefault(u, random(self.__f) / np.sqrt(self.__f) / 10)
+            self.U.setdefault(u, random(self.__f) / np.sqrt(self.__f))
         for i in self.__item_user:
-            self.V.setdefault(i, random(self.__f) / np.sqrt(self.__f) / 10)
+            self.V.setdefault(i, random(self.__f) / np.sqrt(self.__f))
+
+        exp_r = {}
+        for u in self.__user_item:
+            ratings_user = self.__user_item[u]
+            exp_r[u] = sum([exp(r) for v, r in ratings_user.items()])
 
         for step in range(self.__steps):
-            mid_rst = {}
             for u in self.__user_item:
-                rst0, rst1 = 0., 0.
-                ratings_user = self.__user_item[u].items()
-                for i, r in ratings_user:
-                    rst0 += exp(r)
-                    rst1 += exp(self.__gfunc(u, i))
-                mid_rst[u] = [rst0, rst1]
-                rst2 = 0.
-                for i, r in ratings_user:
-                    rst2 += (exp(self.__gfunc(u, i)) / rst1 - exp(r) / rst0) * self.__gdfunc(u, i) * self.V[i]
-                self.U[u] -= self.__eta * (rst2 + self.__lambda * self.U[u])
-                rst2 = 0.
-                for i, r in ratings_user:
-                    rst2 += exp(self.__gfunc(u, i))
-                mid_rst[u][1] = rst2
-
-            for i in self.__item_user:
-                rst0 = 0.
-                for u, r in self.__item_user[i].items():
-                    rst0 += (exp(self.__gfunc(u, i)) / mid_rst[u][1] - exp(r) / mid_rst[u][0]) * self.__gdfunc(u, i) * \
-                            self.U[u]
-                self.V[i] -= self.__eta * (rst0 + self.__lambda * self.V[i])
-            #self.__eta *= 0.99
+                exp_uv = 0.
+                for v, r in self.__user_item[u].items():
+                    exp_uv += exp(self.__gfunc(u, v))
+                last = None
+                for v, r in self.__user_item[u].items():
+                    new = exp(self.__gfunc(u, v))
+                    old0, old1 = self.__gdfunc(u, v), self.U[u]
+                    if not last is None:
+                        exp_uv += new - last
+                    self.U[u] -= self.__eta * ((new / exp_uv - 1) * exp(r) / exp_r[u] * self.__gdfunc(u, v) * self.V[
+                        v] + self.__lambda * self.U[u])
+                    self.V[v] -= self.__eta * (
+                    (new / exp_uv - 1) * exp(r) / exp_r[u] * old0 * old1 + self.__lambda * self.V[v])
+                    last = new
             print("第%d次迭代完成！" % (step + 1))
             loss = self.__loss()
             if evals and top:
                 ndcg, precision, recall = self.evals(evals[0], evals[1], top)
-            #result.write(','.join([str(step+1),str(loss),str(ndcg),str(precision),str(recall),'\n']))
-            print(str(loss),str(ndcg),str(precision),str(recall))
+            # result.write(','.join([str(step + 1), str(loss), str(ndcg), str(precision), str(recall), '\n']))
+            print(str(loss), str(ndcg), str(precision), str(recall))
+            # result.flush()
 
     def __gfunc(self, i, j):
         x = sum(self.U[i] * self.V[j])
