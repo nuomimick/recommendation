@@ -3,7 +3,7 @@ import numpy as np
 from time import time
 from math import sqrt
 
-
+# k1数组对应用户，k2数组对应物品
 class TopicMF:
     # 使用梯度下降时的参数
     def __init__(self, lr, reg_lambda0, reg_lambda1, f, niters):

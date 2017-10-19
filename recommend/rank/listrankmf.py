@@ -4,7 +4,7 @@ from math import exp, log
 from numpy.random import random
 import rank_metrics
 
-
+# 梯度下降（根据论文中的公式）
 class ListRankMF:
     '''
     classdocs
@@ -17,10 +17,11 @@ class ListRankMF:
 
     def __init__(self, eta, fct, reg_lambda, steps):
         '''
-        eta:学习率
-        fd:因子维度
-        reg_lambda:L2正则系数
-        steps:迭代次数
+        Args:
+            eta:学习率
+            fd:因子维度
+            reg_lambda:L2正则系数
+            steps:迭代次数
         '''
         self.__eta = eta
         self.__lambda = reg_lambda
@@ -75,7 +76,6 @@ class ListRankMF:
             loss = self.__loss()
             if evals and top:
                 ndcg, precision, recall = self.evals(evals[0], evals[1], top)
-            #result.write(','.join([str(step+1),str(loss),str(ndcg),str(precision),str(recall),'\n']))
             print(str(loss),str(ndcg),str(precision),str(recall))
 
     def __gfunc(self, i, j):
@@ -172,6 +172,4 @@ def main():
 
 
 if __name__ == '__main__':
-    result = open('result.csv', 'w')
     main()
-    result.close()

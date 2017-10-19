@@ -3,7 +3,7 @@ import numpy as np
 from time import time
 from math import sqrt
 
-
+# k1对应用户，k2对应物品
 class TopicMF:
     # 使用梯度下降时的参数
     def __init__(self, lr, reg_lambda0, reg_lambda1, f, niters):
@@ -97,25 +97,6 @@ class TopicMF:
                     ks1.append(reviewMatrix[d].get(w, 0) * self.theta[d])
                     ks2.append(np.dot(self.theta[d], self.phi[w]) * self.theta[d])
                 self.phi[w] *= np.array(ks1).sum(axis=1)/np.array(ks2).sum(axis=1)
-
-                # tmp0, tmp1 = np.zeros(self.f), np.zeros(self.f)
-                # for k in range(self.f):
-                #     tmp2, tmp3 = 0., 0.
-                #     for d in reviewMatrix:
-                #         tmp2 += reviewMatrix[d].get(w, 0) * self.theta[d][k]
-                #         tmp3 += np.dot(self.theta[d], self.phi[w]) * self.theta[d][k]
-                #     tmp0[k] = tmp2
-                #     tmp1[k] = tmp3
-                # self.phi[w] *= tmp0 / tmp1
-
-            # for w in words:
-            #     rst = 0
-            #     for d in reviewMatrix:
-            #         divisor = (np.dot(self.theta[d], self.phi[w]) * self.theta[d])
-            #         dividend1 = divisor - reviewMatrix[d].get(w, 0) * self.theta[d]
-            #         dividend2 = self.phi[w] / divisor
-            #         rst += dividend1
-            #     self.phi[w] -= self.lr * rst
 
             rmse, counts = 0., 0
             for u in test_ratingMatrixUI:

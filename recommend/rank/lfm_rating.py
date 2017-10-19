@@ -4,7 +4,7 @@ from random import randint
 from operator import itemgetter
 import rank_metrics
 
-
+# 多级评分矩阵
 class LFM:
     def __init__(self, lr, reg_lambda, steps, f):
         self.__lr = lr

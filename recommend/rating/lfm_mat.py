@@ -3,7 +3,7 @@ import numpy as np
 from math import sqrt
 import pandas as pd
 
-
+# 以矩阵方式实现
 class LFM:
     def __init__(self, lr, lamda, f, steps):
         self.__lr = lr

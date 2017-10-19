@@ -5,7 +5,7 @@ from numpy.random import random
 import rank_metrics
 from functools import reduce
 
-
+# 使用sgd优化
 class ListRankMF:
     '''
     classdocs
@@ -72,9 +72,7 @@ class ListRankMF:
             loss = self.__loss()
             if evals and top:
                 ndcg, precision, recall = self.evals(evals[0], evals[1], top)
-            # result.write(','.join([str(step + 1), str(loss), str(ndcg), str(precision), str(recall), '\n']))
             print(str(loss), str(ndcg), str(precision), str(recall))
-            # result.flush()
 
     def __gfunc(self, i, j):
         x = sum(self.U[i] * self.V[j])
@@ -170,6 +168,4 @@ def main():
 
 
 if __name__ == '__main__':
-    result = open('result.csv', 'w')
     main()
-    result.close()

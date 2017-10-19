@@ -3,6 +3,7 @@ import numpy as np
 from random import randint
 from operator import itemgetter
 
+# 隐语义矩阵，只有0和1
 class LFM:
     def __init__(self,lr,lamda,steps,f):
         self.__lr = lr

@@ -3,7 +3,7 @@ import numpy.random as nprd
 import numpy as np
 import pandas as pd
 
-
+# 非负矩阵分解
 class NMF:
     def __init__(self, f, reg_lambda, niters):
         self.f = f
